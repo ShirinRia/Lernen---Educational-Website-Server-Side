@@ -87,6 +87,18 @@ async function run() {
       const result = await cursor.toArray();
       res.send(result)
     })
+     // get all users from database
+     app.get('/users', async (req, res) => {
+      const cursor = usercollection.find();
+      const result = await cursor.toArray();
+      res.send(result)
+    })
+     // get all instructors from database
+     app.get('/instructors', async (req, res) => {
+      const cursor = instructorcollection.find();
+      const result = await cursor.toArray();
+      res.send(result)
+    })
     // add instructor
     app.post('/newinstructor', async (req, res) => {
       const instructor = req.body
