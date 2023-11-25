@@ -43,6 +43,8 @@ async function run() {
     // Connect the client to the server	(optional starting in v4.7)
     // await client.connect();
     const usercollection = client.db("lernen").collection("userdata");
+    const classescollection = client.db("lernen").collection("classesdata");
+    const instructorcollection = client.db("lernen").collection("instructordata");
 
 
     // add new user to database
@@ -79,6 +81,20 @@ async function run() {
       const result = await classescollection.insertOne(classes);
       res.send(result)
     })
+     // get all class from database
+     app.get('/classes', async (req, res) => {
+      const cursor = classescollection.find();
+      const result = await cursor.toArray();
+      res.send(result)
+    })
+    // add instructor
+    app.post('/newinstructor', async (req, res) => {
+      const instructor = req.body
+      console.log(instructor)
+      const result = await instructorcollection.insertOne(instructor);
+      res.send(result)
+    })
+
   } finally {
     // Ensures that the client will close when you finish/error
     // await client.close();
