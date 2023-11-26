@@ -85,8 +85,39 @@ async function run() {
     })
      // get all class from database
      app.get('/classes', async (req, res) => {
+     
       const cursor = classescollection.find();
       const result = await cursor.toArray();
+      res.send(result)
+    })
+     // get student class from database
+     app.get('/studentclasses', async (req, res) => {
+      const query = {
+        email: req?.query?.email,
+      };
+     const cursor = payment_class_information_collection.find(query);
+     const result = await cursor.toArray();
+      const ids=result.map(item => item.courseId);
+      console.log(ids);
+      const objectids=ids.map(id=>new ObjectId(id))
+      
+      const filter = {
+        _id:{
+          $in:objectids
+        }
+      };
+     
+      const resu = await classescollection.find(filter).toArray();
+      res.send(resu)
+    })
+     // get teacher class from database
+     app.get('/teacherclasses', async (req, res) => {
+      const query = {
+        email: req?.query?.email,
+      };
+     const cursor = classescollection.find(query);
+     const result = await cursor.toArray();
+    
       res.send(result)
     })
      // get all class from database
@@ -106,6 +137,15 @@ async function run() {
      // get all instructors from database
      app.get('/instructors', async (req, res) => {
       const cursor = instructorcollection.find();
+      const result = await cursor.toArray();
+      res.send(result)
+    })
+     // get user payments from database
+     app.get('/payments', async (req, res) => {
+      const query = {
+        email: req?.query?.email,
+      };
+      const cursor = payment_class_information_collection.find(query);
       const result = await cursor.toArray();
       res.send(result)
     })
@@ -139,7 +179,46 @@ async function run() {
     clientSecret: paymentIntent.client_secret
   })
 });
+// update course
+app.put('/updatecourse', async (req, res) => {
 
+  let query = {}
+  if (req.query?.id) {
+    query = {
+      _id: new ObjectId(req.query.id)
+    }
+  }
+
+  const options = {
+    upsert: true
+  };
+
+  const updateproduct = req.body
+  // console.log(updateproduct)
+  const updateproductdoc = {
+    $set: {
+
+      
+       title : updateproduct.title,
+       name : updateproduct.name,
+       email : updateproduct.email,
+       price : updateproduct.price,
+       description : updateproduct.description,
+       photo:updateproduct.photo
+
+    },
+  };
+
+  // Update the first document that matches the filter
+  const result = await classescollection.updateOne(query, updateproductdoc, options);
+  res.send(result)
+})
+app.delete('/class/:id', async (req, res) => {
+  const id = req.params.id;
+  const query = { _id: new ObjectId(id) }
+  const result = await classescollection.deleteOne(query);
+  res.send(result);
+})
   } finally {
     // Ensures that the client will close when you finish/error
     // await client.close();
