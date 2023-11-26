@@ -9,6 +9,7 @@ var cors = require('cors')
 require('dotenv').config()
 var app = express()
 var cookieParser = require('cookie-parser')
+const stripe = require('stripe')(process.env.STRIPE_SECRET_KEY);
 // app.use(cors())
 app.use(cors({
     origin: ['http://localhost:5173'],
@@ -45,6 +46,7 @@ async function run() {
     const usercollection = client.db("lernen").collection("userdata");
     const classescollection = client.db("lernen").collection("classesdata");
     const instructorcollection = client.db("lernen").collection("instructordata");
+    const payment_class_information_collection = client.db("lernen").collection("payment_class_data");
 
 
     // add new user to database
@@ -87,6 +89,14 @@ async function run() {
       const result = await cursor.toArray();
       res.send(result)
     })
+     // get all class from database
+     app.get('/class/:id', async (req, res) => {
+      const id = req.params.id;
+      const query = { _id: new ObjectId(id) }
+      const result = await classescollection.findOne(query);
+      res.send(result);
+    })
+    
      // get all users from database
      app.get('/users', async (req, res) => {
       const cursor = usercollection.find();
@@ -106,6 +116,29 @@ async function run() {
       const result = await instructorcollection.insertOne(instructor);
       res.send(result)
     })
+    // paymnet
+    app.post('/payments', async (req, res) => {
+      const payment = req.body
+      console.log(payment)
+      const result = await payment_class_information_collection.insertOne(payment);
+      res.send(result)
+    })
+ // payment intent
+ app.post('/create-payment-intent', async (req, res) => {
+  const { price } = req.body;
+  const amount = parseInt(price * 100);
+  console.log(amount, 'amount inside the intent')
+
+  const paymentIntent = await stripe.paymentIntents.create({
+    amount: amount,
+    currency: 'usd',
+    payment_method_types: ['card']
+  });
+
+  res.send({
+    clientSecret: paymentIntent.client_secret
+  })
+});
 
   } finally {
     // Ensures that the client will close when you finish/error
