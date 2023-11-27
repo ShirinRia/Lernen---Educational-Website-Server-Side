@@ -48,6 +48,7 @@ async function run() {
     const instructorcollection = client.db("lernen").collection("instructordata");
     const payment_class_information_collection = client.db("lernen").collection("payment_class_data");
     const assignmentcollection = client.db("lernen").collection("assignmentdata");
+    const feedbackcollection = client.db("lernen").collection("feedbackdata");
 
 
     // add new user to database
@@ -76,12 +77,46 @@ async function run() {
       const result = await usercollection.updateOne(query, updateuserdb);
       res.send(result)
     })
+    // update userdata
+    app.patch('/updateinstructorinfo', async (req, res) => {
+
+      const change = req.body
+      console.log(change)
+      const query = {
+        email: change.email
+      }
+      const filter = {
+        _id: new ObjectId(change.id)
+      }
+
+      const updateuserdb = {
+        $set: {
+          status: change.status
+        },
+      };
+      const updateuserdb2 = {
+        $set: {
+          role: change.role
+        },
+      };
+      // Update the first document that matches the filter
+      const result = await usercollection.updateOne(query, updateuserdb2);
+      const result2 = await instructorcollection.updateOne(filter, updateuserdb);
+      res.send([result,result2])
+    })
 
     // add class
     app.post('/classes', async (req, res) => {
       const classes = req.body
       console.log(classes)
       const result = await classescollection.insertOne(classes);
+      res.send(result)
+    })
+    // add feedback
+    app.post('/feedbacks', async (req, res) => {
+      const feedback = req.body
+      console.log(feedback)
+      const result = await feedbackcollection.insertOne(feedback);
       res.send(result)
     })
     // get all class from database
