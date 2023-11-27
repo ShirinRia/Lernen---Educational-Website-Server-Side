@@ -47,6 +47,7 @@ async function run() {
     const classescollection = client.db("lernen").collection("classesdata");
     const instructorcollection = client.db("lernen").collection("instructordata");
     const payment_class_information_collection = client.db("lernen").collection("payment_class_data");
+    const assignmentcollection = client.db("lernen").collection("assignmentdata");
 
 
     // add new user to database
@@ -83,65 +84,78 @@ async function run() {
       const result = await classescollection.insertOne(classes);
       res.send(result)
     })
-     // get all class from database
-     app.get('/classes', async (req, res) => {
-     
+    // get all class from database
+    app.get('/classes', async (req, res) => {
+
       const cursor = classescollection.find();
       const result = await cursor.toArray();
       res.send(result)
     })
-     // get student class from database
-     app.get('/studentclasses', async (req, res) => {
+    // get student class from database
+    app.get('/studentclasses', async (req, res) => {
       const query = {
         email: req?.query?.email,
       };
-     const cursor = payment_class_information_collection.find(query);
-     const result = await cursor.toArray();
-      const ids=result.map(item => item.courseId);
+      const cursor = payment_class_information_collection.find(query);
+      const result = await cursor.toArray();
+      const ids = result.map(item => item.courseId);
       console.log(ids);
-      const objectids=ids.map(id=>new ObjectId(id))
-      
+      const objectids = ids.map(id => new ObjectId(id))
+
       const filter = {
-        _id:{
-          $in:objectids
+        _id: {
+          $in: objectids
         }
       };
-     
+
       const resu = await classescollection.find(filter).toArray();
       res.send(resu)
     })
-     // get teacher class from database
-     app.get('/teacherclasses', async (req, res) => {
+    // get teacher class from database
+    app.get('/teacherclasses', async (req, res) => {
       const query = {
         email: req?.query?.email,
       };
-     const cursor = classescollection.find(query);
-     const result = await cursor.toArray();
-    
+      const cursor = classescollection.find(query);
+      const result = await cursor.toArray();
+
       res.send(result)
     })
-     // get all class from database
-     app.get('/class/:id', async (req, res) => {
+    // get assignments from database
+    app.get('/assignments/:id', async (req, res) => {
+      const query = {
+
+        courseid: req.params.id,
+      };
+      const cursor = assignmentcollection.find(query);
+      const result = await cursor.toArray();
+
+      res.send(result)
+    })
+    // get all class from database
+    app.get('/class/:id', async (req, res) => {
       const id = req.params.id;
-      const query = { _id: new ObjectId(id) }
+      const query = {
+        _id: new ObjectId(id)
+      }
       const result = await classescollection.findOne(query);
       res.send(result);
     })
-    
-     // get all users from database
-     app.get('/users', async (req, res) => {
+
+    // get all users from database
+    app.get('/users', async (req, res) => {
       const cursor = usercollection.find();
       const result = await cursor.toArray();
       res.send(result)
     })
-     // get all instructors from database
-     app.get('/instructors', async (req, res) => {
+    // get all instructors from database
+    app.get('/instructors', async (req, res) => {
       const cursor = instructorcollection.find();
       const result = await cursor.toArray();
       res.send(result)
     })
-     // get user payments from database
-     app.get('/payments', async (req, res) => {
+    // get user payments from database
+    app.get('/payments', async (req, res) => {
       const query = {
         email: req?.query?.email,
       };
@@ -156,6 +170,13 @@ async function run() {
       const result = await instructorcollection.insertOne(instructor);
       res.send(result)
     })
+    // add assignment
+    app.post('/createassignment', async (req, res) => {
+      const assignment = req.body
+      console.log(assignment)
+      const result = await assignmentcollection.insertOne(assignment);
+      res.send(result)
+    })
     // paymnet
     app.post('/payments', async (req, res) => {
       const payment = req.body
@@ -163,62 +184,66 @@ async function run() {
       const result = await payment_class_information_collection.insertOne(payment);
       res.send(result)
     })
- // payment intent
- app.post('/create-payment-intent', async (req, res) => {
-  const { price } = req.body;
-  const amount = parseInt(price * 100);
-  console.log(amount, 'amount inside the intent')
+    // payment intent
+    app.post('/create-payment-intent', async (req, res) => {
+      const {
+        price
+      } = req.body;
+      const amount = parseInt(price * 100);
+      console.log(amount, 'amount inside the intent')
 
-  const paymentIntent = await stripe.paymentIntents.create({
-    amount: amount,
-    currency: 'usd',
-    payment_method_types: ['card']
-  });
+      const paymentIntent = await stripe.paymentIntents.create({
+        amount: amount,
+        currency: 'usd',
+        payment_method_types: ['card']
+      });
 
-  res.send({
-    clientSecret: paymentIntent.client_secret
-  })
-});
-// update course
-app.put('/updatecourse', async (req, res) => {
+      res.send({
+        clientSecret: paymentIntent.client_secret
+      })
+    });
+    // update course
+    app.put('/updatecourse', async (req, res) => {
 
-  let query = {}
-  if (req.query?.id) {
-    query = {
-      _id: new ObjectId(req.query.id)
-    }
-  }
+      let query = {}
+      if (req.query?.id) {
+        query = {
+          _id: new ObjectId(req.query.id)
+        }
+      }
 
-  const options = {
-    upsert: true
-  };
+      const options = {
+        upsert: true
+      };
 
-  const updateproduct = req.body
-  // console.log(updateproduct)
-  const updateproductdoc = {
-    $set: {
+      const updateproduct = req.body
+      // console.log(updateproduct)
+      const updateproductdoc = {
+        $set: {
 
-      
-       title : updateproduct.title,
-       name : updateproduct.name,
-       email : updateproduct.email,
-       price : updateproduct.price,
-       description : updateproduct.description,
-       photo:updateproduct.photo
 
-    },
-  };
+          title: updateproduct.title,
+          name: updateproduct.name,
+          email: updateproduct.email,
+          price: updateproduct.price,
+          description: updateproduct.description,
+          photo: updateproduct.photo
 
-  // Update the first document that matches the filter
-  const result = await classescollection.updateOne(query, updateproductdoc, options);
-  res.send(result)
-})
-app.delete('/class/:id', async (req, res) => {
-  const id = req.params.id;
-  const query = { _id: new ObjectId(id) }
-  const result = await classescollection.deleteOne(query);
-  res.send(result);
-})
+        },
+      };
+
+      // Update the first document that matches the filter
+      const result = await classescollection.updateOne(query, updateproductdoc, options);
+      res.send(result)
+    })
+    app.delete('/class/:id', async (req, res) => {
+      const id = req.params.id;
+      const query = {
+        _id: new ObjectId(id)
+      }
+      const result = await classescollection.deleteOne(query);
+      res.send(result);
+    })
   } finally {
     // Ensures that the client will close when you finish/error
     // await client.close();
