@@ -77,6 +77,121 @@ async function run() {
       const result = await usercollection.updateOne(query, updateuserdb);
       res.send(result)
     })
+    app.get('/users/admin/:email', async (req, res) => {
+      const email = req.params.email;
+
+      // if (email !== req.decoded.email) {
+      //   return res.status(403).send({
+      //     message: 'forbidden access'
+      //   })
+      // }
+
+      const query = {
+        email: email
+      };
+      const user = await usercollection.findOne(query);
+      let admin = false;
+      if (user) {
+        admin = user?.role === 'admin';
+      }
+      res.send({
+        admin
+      });
+    })
+
+    app.get('/users/student/:email', async (req, res) => {
+      const email = req.params.email;
+
+      // if (email !== req.decoded.email) {
+      //   return res.status(403).send({
+      //     message: 'forbidden access'
+      //   })
+      // }
+
+      const query = {
+        email: email
+      };
+      const user = await usercollection.findOne(query);
+      let Student = false;
+      if (user) {
+        Student = user?.role === 'Student';
+      }
+      // console.log('student',email,Student)
+      res.send({
+        Student
+      });
+    })
+    app.get('/users/instructor/:email', async (req, res) => {
+      const email = req.params.email;
+
+      // if (email !== req.decoded.email) {
+      //   return res.status(403).send({
+      //     message: 'forbidden access'
+      //   })
+      // }
+
+      const query = {
+        email: email
+      };
+      const user = await usercollection.findOne(query);
+      let Instructor = false;
+
+      console.log('instructor', user?.role)
+      if (user) {
+        Instructor = user?.role === 'Instructor';
+      }
+      console.log('instructor', email, Instructor)
+      res.send({
+        Instructor: Instructor
+      });
+    })
+    app.patch('/course/assignment/:id/:cid', async (req, res) => {
+      const cid = req.params.cid;
+      const id = req.params.id;
+      const submission = req.body
+      const query = {
+        _id: new ObjectId(id),
+        courseid: cid
+      }
+      const updateddoc = {
+        $set: {
+
+          submissioncount: submission.newcount
+        }
+      }
+      const result = await assignmentcollection.updateOne(query, updateddoc)
+      res.send(result)
+    })
+    app.patch('/course/:cid', async (req, res) => {
+      const cid = req.params.cid;
+     
+      const totalenrollment = req.body
+      const query = {
+        _id: new ObjectId(cid),
+        
+      }
+      const updateddoc = {
+        $set: {
+
+          totalenrollment: totalenrollment.newcount
+        }
+      }
+      const result = await classescollection.updateOne(query, updateddoc)
+      res.send(result)
+    })
+    app.patch('/users/admin/:id', async (req, res) => {
+      const id = req.params.id;
+      const query = {
+        _id: new ObjectId(id)
+      }
+      const updateddoc = {
+        $set: {
+          role: 'admin'
+        }
+      }
+      const result = await usercollection.updateOne(query, updateddoc)
+      res.send(result)
+    })
     // update userdata
     app.patch('/updateinstructorinfo', async (req, res) => {
 
@@ -102,9 +217,28 @@ async function run() {
       // Update the first document that matches the filter
       const result = await usercollection.updateOne(query, updateuserdb2);
       const result2 = await instructorcollection.updateOne(filter, updateuserdb);
-      res.send([result,result2])
+      res.send([result, result2])
     })
+    app.patch('/updateclassinfo', async (req, res) => {
 
+      const change = req.body
+      console.log(change)
+
+      const filter = {
+        _id: new ObjectId(change.id)
+      }
+
+      const updateuserdb = {
+        $set: {
+          status: change.status
+        },
+      };
+
+      // Update the first document that matches the filter
+
+      const result = await classescollection.updateOne(filter, updateuserdb);
+      res.send(result)
+    })
     // add class
     app.post('/classes', async (req, res) => {
       const classes = req.body
@@ -123,6 +257,12 @@ async function run() {
     app.get('/classes', async (req, res) => {
 
       const cursor = classescollection.find();
+      const result = await cursor.toArray();
+      res.send(result)
+    })
+    app.get('/assignments', async (req, res) => {
+
+      const cursor = assignmentcollection.find();
       const result = await cursor.toArray();
       res.send(result)
     })
@@ -176,6 +316,24 @@ async function run() {
       const result = await classescollection.findOne(query);
       res.send(result);
     })
+    app.get('/totalenrollment/:id', async (req, res) => {
+      const id = req.params.id;
+      const query = {
+        courseId: id
+      }
+      const cursor = await payment_class_information_collection.find(query);
+      const result = await cursor.toArray();
+      res.send(result);
+    })
+    // app.get('/totalassignment/:id', async (req, res) => {
+    //   const id = req.params.id;
+    //   const query = {
+    //     courseid: id
+    //   }
+    //   const cursor = await assignmentcollection.find(query);
+    //   const result = await cursor.toArray();
+    //   res.send(result);
+    // })
 
     // get all users from database
     app.get('/users', async (req, res) => {
