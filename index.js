@@ -121,6 +121,7 @@ async function run() {
         Student
       });
     })
+
     app.get('/users/instructor/:email', async (req, res) => {
       const email = req.params.email;
 
@@ -135,14 +136,38 @@ async function run() {
       };
       const user = await usercollection.findOne(query);
       let Instructor = false;
-
-      console.log('instructor', user?.role)
       if (user) {
         Instructor = user?.role === 'Instructor';
       }
       console.log('instructor', email, Instructor)
       res.send({
         Instructor: Instructor
+      });
+    })
+// statusget
+    app.get('/instructor', async (req, res) => {
+      console.log('dvgdf')
+      const email = req.query?.email;
+
+      // if (email !== req.decoded.email) {
+      //   return res.status(403).send({
+      //     message: 'forbidden access'
+      //   })
+      // }
+
+      const query = {
+        email: email
+      };
+      const user = await instructorcollection.findOne(query);
+      let statu = '';
+
+      // console.log('instructor', user?.status)
+      if (user) {
+        statu = user?.status;
+      }
+      console.log('status', email, statu)
+      res.send({
+        status: statu
       });
     })
     app.patch('/course/assignment/:id/:cid', async (req, res) => {
@@ -303,6 +328,23 @@ async function run() {
         courseid: req.params.id,
       };
       const cursor = assignmentcollection.find(query);
+      const result = await cursor.toArray();
+
+      res.send(result)
+    })
+    app.get('/reviews/:id', async (req, res) => {
+      const query = {
+
+        courseid: req.params.id,
+      };
+      const cursor = feedbackcollection.find(query);
+      const result = await cursor.toArray();
+
+      res.send(result)
+    })
+    app.get('/reviews', async (req, res) => {
+     
+      const cursor = feedbackcollection.find();
       const result = await cursor.toArray();
 
       res.send(result)
