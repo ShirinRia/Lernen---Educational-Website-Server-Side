@@ -13,7 +13,7 @@ var cookieParser = require('cookie-parser')
 const stripe = require('stripe')(process.env.STRIPE_SECRET_KEY);
 // app.use(cors())
 app.use(cors({
-    origin: ['http://localhost:5173','https://stirring-bunny-6b57ab.netlify.app/'],
+    origin: ['http://localhost:5173','https://stirring-bunny-6b57ab.netlify.app'],
     credentials: true
 
   }
@@ -115,54 +115,54 @@ async function run() {
 
 
     // update userdata
-    // app.patch('/users', async (req, res) => {
+    app.patch('/users', async (req, res) => {
 
-    //   const user = req.body
-    //   const query = {
-    //     email: user.email
-    //   }
-
-    //   const updateuserdb = {
-    //     $set: {
-    //       lastloggedat: user.lastloggedat
-    //     },
-    //   };
-    //   // Update the first document that matches the filter
-    //   const result = await usercollection.updateOne(query, updateuserdb);
-    //   res.send(result)
-    // })
-
-    app.put('/users', async (req, res) => {
-      console.log('vdfg')
-      const updateproduct = req.body
-      console.log(updateproduct)
+      const user = req.body
       const query = {
-        email: updateproduct.email
+        email: user.email
       }
 
-      const options = {
-        upsert: true
-      };
-
-     
-      // console.log(updateproduct)
-      const updateproductdoc = {
+      const updateuserdb = {
         $set: {
-
-          role: updateproduct.role,
-          name: updateproduct.name,
-          email: updateproduct.email,
-          createat: updateproduct.createat,
-          
-          photo: updateproduct.photo
-
+          lastloggedat: user.lastloggedat
         },
       };
-
       // Update the first document that matches the filter
-      const result = await usercollection.updateOne(query, updateproductdoc, options);
+      const result = await usercollection.updateOne(query, updateuserdb);
       res.send(result)
     })
+
+    // app.put('/users', async (req, res) => {
+    //   console.log('vdfg')
+    //   const updateproduct = req.body
+    //   console.log(updateproduct)
+    //   const query = {
+    //     email: updateproduct.email
+    //   }
+
+    //   const options = {
+    //     upsert: true
+    //   };
+
+     
+    //   // console.log(updateproduct)
+    //   const updateproductdoc = {
+    //     $set: {
+
+    //       role: updateproduct.role,
+    //       name: updateproduct.name,
+    //       email: updateproduct.email,
+    //       // createat: updateproduct.createat,
+    //       phone:updateproduct.phone,
+    //       photo: updateproduct.photo
+
+    //     },
+    //   };
+
+    //   // Update the first document that matches the filter
+    //   const result = await usercollection.updateOne(query, updateproductdoc, options);
+    //   res.send(result)
+    // })
     app.get('/users/admin/:email', async (req, res) => {
       const email = req.params.email;
 
@@ -297,7 +297,7 @@ async function run() {
       }
       const updateddoc = {
         $set: {
-          role: 'admin'
+          role: 'Admin'
         }
       }
       const result = await usercollection.updateOne(query, updateddoc)
@@ -330,6 +330,32 @@ async function run() {
       const result2 = await instructorcollection.updateOne(filter, updateuserdb);
       res.send([result, result2])
     })
+    app.patch('/updateinstructorinforejected', async (req, res) => {
+
+      const change = req.body
+      console.log(change)
+    
+      const filter = {
+        _id: new ObjectId(change.id)
+      }
+
+      const updateuserdb = {
+        $set: {
+          status: change.status
+        },
+      };
+     
+    
+      // Update the first document that matches the filter
+      // const result = await usercollection.updateOne(query, updateuserdb2);
+      const result2 = await instructorcollection.updateOne(filter, updateuserdb);
+      res.send( result2)
+    })
+    app.get('/productsCount', async (req, res) => {
+      const count = await classescollection.estimatedDocumentCount();
+      res.send({ count });
+    })
+
     app.patch('/updateclassinfo', async (req, res) => {
 
       const change = req.body
@@ -383,7 +409,9 @@ async function run() {
     app.get('/Paginationclasses', async (req, res) => {
       const page = parseInt(req.query.page);
       const size = parseInt(req.query.size);
-
+      // const query = {
+      //   status:"Approved"
+      // }
       // console.log('pagination query', page, size);
       const result = await classescollection.find()
         .skip(page * size)
