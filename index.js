@@ -3,7 +3,8 @@ const {
   ServerApiVersion,
   ObjectId
 } = require('mongodb');
-// var jwt = require('jsonwebtoken');
+var jwt = require('jsonwebtoken');
+require('dotenv').config();
 const express = require('express')
 var cors = require('cors')
 require('dotenv').config()
@@ -12,7 +13,7 @@ var cookieParser = require('cookie-parser')
 const stripe = require('stripe')(process.env.STRIPE_SECRET_KEY);
 // app.use(cors())
 app.use(cors({
-    origin: ['http://localhost:5173'],
+    origin: ['http://localhost:5173','https://stirring-bunny-6b57ab.netlify.app/'],
     credentials: true
 
   }
@@ -25,7 +26,27 @@ const port = process.env.PORT || 5000
 app.get('/', (req, res) => {
   res.send('Hello World!')
 })
+const verifytoken = async (req, res, next) => {
+  const token = req?.cookies?.token;
+  console.log('middelware', token)
+  if (!token) {
+    return res.status(401).send({
+      message: 'not authorized'
+    })
+  }
+  jwt.verify(token, process.env.ACCESS_TOKEN_SECRET, (err, decoded) => {
+    if (err) {
+      return res.status(401).send({
+        message: 'not authorized'
+      })
+    }
+    console.log('decode value', decoded);
+    req.user = decoded
+    next();
+  })
 
+
+}
 USERNAME = process.env.S3_BUCKET
 PASS = process.env.SECRET_KEY
 const uri = `mongodb+srv://${USERNAME}:${PASS}@cluster0.xrp2z6o.mongodb.net/?retryWrites=true&w=majority`;
@@ -49,7 +70,40 @@ async function run() {
     const payment_class_information_collection = client.db("lernen").collection("payment_class_data");
     const assignmentcollection = client.db("lernen").collection("assignmentdata");
     const feedbackcollection = client.db("lernen").collection("feedbackdata");
+   // JWT Authorization
+   app.post('/jwt', async (req, res) => {
+    const user = req.body;
+    // console.log(process.env.ACCESS_TOKEN_SECRET)
+    const token = jwt.sign(user, process.env.ACCESS_TOKEN_SECRET, {
+      expiresIn: '1h'
+    })
 
+    res
+      .cookie('token', token, {
+
+        httpOnly: true,
+        secure: process.env.NODE_ENV === 'production',
+        sameSite: process.env.NODE_ENV === 'production' ? 'none' : 'strict',
+      })
+      .send({
+        success: true
+      })
+  })
+
+     // Logout
+     app.post('/logout', async (req, res) => {
+      const user = req.body;
+      console.log('logging out', user);
+      res
+        .clearCookie('token', {
+          maxAge: 0,
+          sameSite: 'none',
+          secure: true
+        })
+        .send({
+          success: true
+        })
+    })
 
     // add new user to database
     app.post('/users', async (req, res) => {
@@ -61,20 +115,52 @@ async function run() {
 
 
     // update userdata
-    app.patch('/users', async (req, res) => {
+    // app.patch('/users', async (req, res) => {
 
-      const user = req.body
+    //   const user = req.body
+    //   const query = {
+    //     email: user.email
+    //   }
+
+    //   const updateuserdb = {
+    //     $set: {
+    //       lastloggedat: user.lastloggedat
+    //     },
+    //   };
+    //   // Update the first document that matches the filter
+    //   const result = await usercollection.updateOne(query, updateuserdb);
+    //   res.send(result)
+    // })
+
+    app.put('/users', async (req, res) => {
+      console.log('vdfg')
+      const updateproduct = req.body
+      console.log(updateproduct)
       const query = {
-        email: user.email
+        email: updateproduct.email
       }
 
-      const updateuserdb = {
+      const options = {
+        upsert: true
+      };
+
+     
+      // console.log(updateproduct)
+      const updateproductdoc = {
         $set: {
-          lastloggedat: user.lastloggedat
+
+          role: updateproduct.role,
+          name: updateproduct.name,
+          email: updateproduct.email,
+          createat: updateproduct.createat,
+          
+          photo: updateproduct.photo
+
         },
       };
+
       // Update the first document that matches the filter
-      const result = await usercollection.updateOne(query, updateuserdb);
+      const result = await usercollection.updateOne(query, updateproductdoc, options);
       res.send(result)
     })
     app.get('/users/admin/:email', async (req, res) => {
@@ -92,7 +178,7 @@ async function run() {
       const user = await usercollection.findOne(query);
       let admin = false;
       if (user) {
-        admin = user?.role === 'admin';
+        admin = user?.role === 'Admin';
       }
       res.send({
         admin
@@ -144,7 +230,7 @@ async function run() {
         Instructor: Instructor
       });
     })
-// statusget
+    // statusget
     app.get('/instructor', async (req, res) => {
       console.log('dvgdf')
       const email = req.query?.email;
@@ -189,11 +275,11 @@ async function run() {
     })
     app.patch('/course/:cid', async (req, res) => {
       const cid = req.params.cid;
-     
+
       const totalenrollment = req.body
       const query = {
         _id: new ObjectId(cid),
-        
+
       }
       const updateddoc = {
         $set: {
@@ -274,7 +360,15 @@ async function run() {
     // add feedback
     app.post('/feedbacks', async (req, res) => {
       const feedback = req.body
+      console.log(feedback.courseid)
+      const query = {
+        _id: new ObjectId(feedback.courseid)
+      }
+      const result1 = await classescollection.findOne(query);
+      // feedback={...feedback,title:result1.title}
+      feedback.title=result1.title;
       console.log(feedback)
+      console.log(result1.title)
       const result = await feedbackcollection.insertOne(feedback);
       res.send(result)
     })
@@ -284,6 +378,18 @@ async function run() {
       const cursor = classescollection.find();
       const result = await cursor.toArray();
       res.send(result)
+    })
+    // get paged class from database
+    app.get('/Paginationclasses', async (req, res) => {
+      const page = parseInt(req.query.page);
+      const size = parseInt(req.query.size);
+
+      // console.log('pagination query', page, size);
+      const result = await classescollection.find()
+        .skip(page * size)
+        .limit(size)
+        .toArray();
+      res.send(result);
     })
     app.get('/assignments', async (req, res) => {
 
@@ -343,7 +449,7 @@ async function run() {
       res.send(result)
     })
     app.get('/reviews', async (req, res) => {
-     
+
       const cursor = feedbackcollection.find();
       const result = await cursor.toArray();
 
@@ -379,6 +485,7 @@ async function run() {
 
     // get all users from database
     app.get('/users', async (req, res) => {
+      // console.log(req.headers)
       const cursor = usercollection.find();
       const result = await cursor.toArray();
       res.send(result)
@@ -455,7 +562,6 @@ async function run() {
       // console.log(updateproduct)
       const updateproductdoc = {
         $set: {
-
 
           title: updateproduct.title,
           name: updateproduct.name,
